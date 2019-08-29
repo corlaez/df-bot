@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-import { ActivityHandler, MessageFactory } from 'botbuilder';
+import { ActivityHandler, MessageFactory, TurnContext } from 'botbuilder';
 var moment = require("moment");
 
 // welcome
@@ -30,14 +30,18 @@ const processWords = words => words.reduce(wordsReducer, []).join(" ");
 
 // User is informed about DF whereabouts
 let currentToken = null;
+let fullText = null;
 let currentDate = null;
 const reportDF = () => {
     if (currentDate == null) {
         return "DF hasn't been reported yet";
     }
     const now = moment();
-    const diff = moment.duration(now.diff(currentDate)).humanize()
-    return currentToken + " reported " + diff + ' ago.';
+    const diff = moment.duration(now.diff(currentDate)).humanize();
+    const mainReport = currentToken + " reported " + diff + ' ago.';
+    const isFullTextVisible =  fullText !== currentToken;
+    const fullTextReport =  ' Full text: ' + fullText;
+    return isFullTextVisible ? mainReport : mainReport + fullTextReport;
 }
 const subscriptions = {
     DF5: [],
@@ -47,7 +51,12 @@ const subscriptions = {
     DF21: [],
 }
 const isSubscribedUser = id => Object.values(subscriptions).some(list => list.includes(id));
+const subscribe = (context, text, userId) => {
+    subscriptions["DF"+text].push(userId);
+    references[userId] = TurnContext.getConversationReference(context.activity);
+}
 const unsubscribe = id => {
+    references[id] = null
     let index = subscriptions.DF5.indexOf(id);
     if (index > -1) {
         subscriptions.DF5 = [...subscriptions.DF5.slice(0, index), ...subscriptions.DF5.slice(index + 1)]
@@ -67,6 +76,9 @@ const unsubscribe = id => {
 }
 const changeMySubscription = "Change my subscription";
 
+// proactive messaging
+const references = {};
+
 export class MyBot extends ActivityHandler {
     constructor() {
         super();
@@ -80,7 +92,7 @@ export class MyBot extends ActivityHandler {
                 if(!validAnswer) {
                     this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
                 } else {
-                    subscriptions["DF"+text].push(userId);
+                    subscribe(context, text, userId);
                     await context.sendActivity(reportDF());// echo info about DF
                     this.sendSuggestedActions(context, true);// Show report options
                 }
@@ -95,8 +107,17 @@ export class MyBot extends ActivityHandler {
                     currentToken = getWordToReplace(matchedWord);
                     currentDate = moment();
                     const newText = processWords(words);
-                    await context.sendActivity(newText);// echo parsed response
+                    fullText = newText;
+                    await context.sendActivity('Thank you for updating Daniel\'s location');// echo parsed response to reporting user
                     // TODO: inform subscribers
+                    const subscribedRefs = subscriptions[currentToken]
+                        .filter(id => id !== userId)
+                        .map(id => references[id]);
+                    for (const ref of subscribedRefs) {
+                        await context.adapter.continueConversation(ref, async innerContext => {
+                            await innerContext.sendActivity(newText);// echo message to subscribers
+                        });
+                    }
                 } else {// I sent some not handled text
                     await context.sendActivity(reportDF());// echo info about DF
                     await this.sendSuggestedActions(context, true);// Show report options
