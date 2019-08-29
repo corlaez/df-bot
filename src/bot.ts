@@ -5,9 +5,8 @@ import { ActivityHandler, MessageFactory } from 'botbuilder';
 var moment = require("moment");
 
 // welcome
-const welcomeMessage = (context, name) => `Welcome to suggestedActionsBot ${ name }. ` +
-`This bot will introduce you to Suggested Actions. ` +
-`Please select an option:`;
+const welcomeMessage = (name) => `Welcome to dfbot ${ name }. ` +
+`This bot will help you get informed about the location of Daniel Fernando in Belatrix's Lima floors.`;
 
 // User reports DF
 const toLowerCase = text => text.toLowerCase();
@@ -47,6 +46,26 @@ const subscriptions = {
     DF20: [],
     DF21: [],
 }
+const isSubscribedUser = id => Object.values(subscriptions).some(list => list.includes(id));
+const unsubscribe = id => {
+    let index = subscriptions.DF5.indexOf(id);
+    if (index > -1) {
+        subscriptions.DF5 = [...subscriptions.DF5.slice(0, index), ...subscriptions.DF5.slice(index + 1)]
+    }
+    index = subscriptions.DF16.indexOf(id);
+    if (index > -1) {
+        subscriptions.DF16 = [...subscriptions.DF16.slice(0, index), ...subscriptions.DF16.slice(index + 1)]
+    }
+    index = subscriptions.DF19.indexOf(id);
+    if (index > -1) {
+        subscriptions.DF19 = [...subscriptions.DF19.slice(0, index), ...subscriptions.DF19.slice(index + 1)]
+    }
+    index = subscriptions.DF21.indexOf(id);
+    if (index > -1) {
+        subscriptions.DF21 = [...subscriptions.DF21.slice(0, index), ...subscriptions.DF21.slice(index + 1)]
+    }
+}
+const changeMySubscription = "Change my subscription";
 
 export class MyBot extends ActivityHandler {
     constructor() {
@@ -54,17 +73,34 @@ export class MyBot extends ActivityHandler {
         // See https://aka.ms/about-bot-activity-message to learn more about the message and other activity types.
         this.onMessage(async (context, next) => {
             const text = context.activity.text;
-            const words = getWords(text);
-            const wordsToListen = getWordsToListen(words);
-            if (isLength1(wordsToListen)) {
-                const matchedWord = wordsToListen[0]
-                currentToken = getWordToReplace(matchedWord);
-                currentDate = moment();
-                const newText = processWords(words);
-                await context.sendActivity(newText);// TODO: Send to the chat groups (directly if possible or through another lambda)
-            } else {
-                await context.sendActivity(reportDF());
-                await this.sendSuggestedActions(context);
+            const userId = context.activity.from.id;
+            const isSubscribed = isSubscribedUser(userId);
+            if(!isSubscribed) {// Please subscribe
+                const validAnswer = ["5", "16", "19", "20", "21"].includes(text);
+                if(!validAnswer) {
+                    this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
+                } else {
+                    subscriptions["DF"+text].push(userId);
+                    await context.sendActivity(reportDF());// echo info about DF
+                    this.sendSuggestedActions(context, true);// Show report options
+                }
+            }  else if (text === changeMySubscription) {// I want to change my floor
+                unsubscribe(userId);
+                this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
+            } else {// I am subscribed and sent a text...
+                const words = getWords(text);
+                const wordsToListen = getWordsToListen(words);
+                if (isLength1(wordsToListen)) {// The text is actually valid
+                    const matchedWord = wordsToListen[0]
+                    currentToken = getWordToReplace(matchedWord);
+                    currentDate = moment();
+                    const newText = processWords(words);
+                    await context.sendActivity(newText);// echo parsed response
+                    // TODO: inform subscribers
+                } else {// I sent some not handled text
+                    await context.sendActivity(reportDF());// echo info about DF
+                    await this.sendSuggestedActions(context, true);// Show report options
+                }
             }
             // By calling next() you ensure that the next BotHandler is run.
             await next();
@@ -80,17 +116,23 @@ export class MyBot extends ActivityHandler {
     async sendWelcomeMessage(context) {
         // Iterate over all new members added to the conversation.
         for (const idx in context.activity.membersAdded) {
-            if (context.activity.membersAdded[idx].id !== context.activity.recipient.id) {
-                const member = context.activity.membersAdded[idx]
-                const name = member.name;
-                await context.sendActivity(welcomeMessage(context, name));
-                await this.sendSuggestedActions(context);
+            const member = context.activity.membersAdded[idx];
+            const userId = member.id
+            if (userId !== context.activity.recipient.id) {
+                const isSubscribed = isSubscribedUser(userId)
+                await context.sendActivity(welcomeMessage(member.name));
+                await this.sendSuggestedActions(context, isSubscribed);
             }
         }
     }
 
-    async sendSuggestedActions(turnContext) {
-        var reply = MessageFactory.suggestedActions(['DF5', 'DF19', 'DF20', 'DF21'], 'Dónde está Daniel Fernando Y?');
-        await turnContext.sendActivity(reply);
+    async sendSuggestedActions(context, isSubscribed) {
+        if(!isSubscribed) {
+            var firstSubReply = MessageFactory.suggestedActions(['5', '16', '19', '20', '21'], 'Tell us your floor to recieve a message when Daniel is reported on it.');
+            await context.sendActivity(firstSubReply);
+        } else {
+            var reportReply = MessageFactory.suggestedActions(['DF5', 'DF16', 'DF19', 'DF20', 'DF21', changeMySubscription], 'Where is Daniel Fernando Y?');
+            await context.sendActivity(reportReply);
+        }
     }
 }
