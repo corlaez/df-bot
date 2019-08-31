@@ -2,11 +2,16 @@
 // Licensed under the MIT License.
 
 import { ActivityHandler, MessageFactory, TurnContext } from 'botbuilder';
-var moment = require("moment");
 
-// welcome
-const welcomeMessage = (name) => `Welcome to dfbot ${ name }. ` +
-`This bot will help you get informed about the location of Daniel Fernando in Belatrix's Lima floors.`;
+var moment = require("moment");
+moment.locale('es');
+
+// text
+const welcomeMessage = (name) => `Welcome ${ name }. ` +
+`Este bot te notificará cuando Daniel Fernando haya sido reportado en tu piso en las oficinas de Belatrix.`;
+const floorMessage = 'Primero dime en qué piso estás para poder avisarte cuando Daniel esté en él.';
+const reportMessage = 'Si sabes dónde está Daniel, repórtalo.';
+const thanksMessage = 'Gracias por reportar la ubicación de Daniel.';
 
 // User reports DF
 const toLowerCase = text => text.toLowerCase();
@@ -34,14 +39,14 @@ let fullText = null;
 let currentDate = null;
 const reportDF = () => {
     if (currentDate == null) {
-        return "DF hasn't been reported yet";
+        return "DF aún no ha sido reportado.";
     }
     const now = moment();
     const diff = moment.duration(now.diff(currentDate)).humanize();
-    const mainReport = currentToken + " reported " + diff + ' ago.';
+    const mainReport = currentToken + " ha sido reportado hace " + diff + '.';
     const isFullTextVisible =  fullText !== currentToken;
-    const fullTextReport =  ' Full text: ' + fullText;
-    return isFullTextVisible ? mainReport : mainReport + fullTextReport;
+    const fullTextReport =  ' Mensaje completo: ' + fullText;
+    return isFullTextVisible ? mainReport + fullTextReport : mainReport;
 }
 const subscriptions = {
     DF5: [],
@@ -108,7 +113,7 @@ export class MyBot extends ActivityHandler {
                     currentDate = moment();
                     const newText = processWords(words);
                     fullText = newText;
-                    await context.sendActivity('Thank you for updating Daniel\'s location');// echo parsed response to reporting user
+                    await context.sendActivity(thanksMessage);// echo parsed response to reporting user
                     // TODO: inform subscribers
                     const subscribedRefs = subscriptions[currentToken]
                         .filter(id => id !== userId)
@@ -149,10 +154,10 @@ export class MyBot extends ActivityHandler {
 
     async sendSuggestedActions(context, isSubscribed) {
         if(!isSubscribed) {
-            var firstSubReply = MessageFactory.suggestedActions(['5', '16', '19', '20', '21'], 'Tell us your floor to recieve a message when Daniel is reported on it.');
+            var firstSubReply = MessageFactory.suggestedActions(['5', '16', '19', '20', '21'], floorMessage);
             await context.sendActivity(firstSubReply);
         } else {
-            var reportReply = MessageFactory.suggestedActions(['DF5', 'DF16', 'DF19', 'DF20', 'DF21', changeMySubscription], 'Where is Daniel Fernando Y?');
+            var reportReply = MessageFactory.suggestedActions(['DF5', 'DF16', 'DF19', 'DF20', 'DF21', changeMySubscription], reportMessage);
             await context.sendActivity(reportReply);
         }
     }
