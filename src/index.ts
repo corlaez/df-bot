@@ -1,19 +1,18 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
-
-import { config } from 'dotenv';
-import * as path from 'path';
 import * as restify from 'restify';
+import { BotFrameworkAdapter } from 'botbuilder';
+// Lines to read the MS password. I think I don't need them.
+//import { config } from 'dotenv';
+//import * as path from 'path';
+
+//const ENV_FILE = path.join(__dirname, '..', '.env');
+//config({ path: ENV_FILE });
 
 // Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
-import { BotFrameworkAdapter } from 'botbuilder';
 
 // This bot's main dialog.
 import { MyBot } from './bot';
 
-const ENV_FILE = path.join(__dirname, '..', '.env');
-config({ path: ENV_FILE });
 
 // Create HTTP server.
 const server = restify.createServer();
