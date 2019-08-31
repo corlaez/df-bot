@@ -1,8 +1,8 @@
 # df-bot
 
-The bot&#39;s mission is to report in what floor is Daniel F.
+The bot&#39;s mission is to recieve reports of Daniel Fernando's location and notify subscribers.
 
-This bot has been created using [Bot Framework](https://dev.botframework.com), it shows how to create a simple bot that accepts input from the user and echoes it back.
+This bot has been created using [Bot Framework](https://dev.botframework.com).
 
 ## Prerequisites
 
