@@ -1,18 +1,12 @@
+import { config } from 'dotenv';
+import * as path from 'path';
 import * as restify from 'restify';
-import { BotFrameworkAdapter } from 'botbuilder';
-// Lines to read the MS password. I think I don't need them.
-//import { config } from 'dotenv';
-//import * as path from 'path';
-
-//const ENV_FILE = path.join(__dirname, '..', '.env');
-//config({ path: ENV_FILE });
-
-// Import required bot services.
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
-
-// This bot's main dialog.
+import { BotFrameworkAdapter } from 'botbuilder';
 import { MyBot } from './bot';
 
+const ENV_FILE = path.join(__dirname, '..', '.env');
+config({ path: ENV_FILE });
 
 // Create HTTP server.
 const server = restify.createServer();
