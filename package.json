@@ -7,7 +7,9 @@
     "main": "./lib/index.js",
     "scripts": {
         "build": "tsc --build",
-        "start": "tsc --build && node ./lib/index.js",
+        "start": "npm run build && npm run serve",
+        "serve": "node ./lib/index.js",
+        "postinstall": "npm run build",
         "test": "echo \"Error: no test specified\" && exit 1",
         "watch": "nodemon --watch ./src -e ts --exec \"npm run start\""
     },
