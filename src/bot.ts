@@ -95,15 +95,15 @@ export class MyBot extends ActivityHandler {
             if(!isSubscribed) {// Please subscribe
                 const validAnswer = ["5", "16", "19", "20", "21"].includes(text);
                 if(!validAnswer) {
-                    this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
+                    await this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
                 } else {
                     subscribe(context, text, userId);
                     await context.sendActivity(reportDF());// echo info about DF
-                    this.sendSuggestedActions(context, true);// Show report options
+                    await this.sendSuggestedActions(context, true);// Show report options
                 }
             }  else if (text === changeMySubscription) {// I want to change my floor
                 unsubscribe(userId);
-                this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
+                await this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
             } else {// I am subscribed and sent a text...
                 const words = getWords(text);
                 const wordsToListen = getWordsToListen(words);
