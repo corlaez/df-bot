@@ -1,12 +1,7 @@
-import { config } from 'dotenv';
-import * as path from 'path';
 import * as restify from 'restify';
 // See https://aka.ms/bot-services to learn more about the different parts of a bot.
 import { BotFrameworkAdapter } from 'botbuilder';
 import { MyBot } from './bot';
-
-const ENV_FILE = path.join(__dirname, '..', '.env');
-config({ path: ENV_FILE });
 
 // Create HTTP server.
 const server = restify.createServer();
