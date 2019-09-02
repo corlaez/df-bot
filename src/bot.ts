@@ -8,10 +8,12 @@ moment.locale('es');
 
 // text
 const welcomeMessage = (name) => `Welcome ${ name }. ` +
-`Este bot te notificará cuando Daniel Fernando haya sido reportado en tu piso en las oficinas de Belatrix.`;
-const floorMessage = 'Primero dime en qué piso estás para poder avisarte cuando Daniel esté en él.';
-const reportMessage = 'Si sabes dónde está Daniel, repórtalo.';
+`Soy un bot que te escribirá cuando me avisen que Daniel Fernando está en tu piso.`;
+const floorMessage = 'Primero dime ¿En qué piso estás?';
+const reportMessage = 'Sabes dónde está Daniel? Repórtalo.';
 const thanksMessage = 'Gracias por reportar la ubicación de Daniel.';
+const floorUpdatedText = 'Listo. Te avisaré cuando sepa que Daniel llegó a tu piso.'
+const changeFloor = "Cambiar mi piso";
 
 // User reports DF
 const toLowerCase = text => text.toLowerCase();
@@ -79,7 +81,6 @@ const unsubscribe = id => {
         subscriptions.DF21 = [...subscriptions.DF21.slice(0, index), ...subscriptions.DF21.slice(index + 1)]
     }
 }
-const changeMySubscription = "Change my subscription";
 
 // proactive messaging
 const references = {};
@@ -98,10 +99,11 @@ export class MyBot extends ActivityHandler {
                     await this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
                 } else {
                     subscribe(context, text, userId);
+                    await context.sendActivity(floorUpdatedText);
                     await context.sendActivity(reportDF());// echo info about DF
                     await this.sendSuggestedActions(context, true);// Show report options
                 }
-            }  else if (text === changeMySubscription) {// I want to change my floor
+            }  else if (text === changeFloor) {// I want to change my floor
                 unsubscribe(userId);
                 await this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
             } else {// I am subscribed and sent a text...
@@ -157,7 +159,7 @@ export class MyBot extends ActivityHandler {
             var firstSubReply = MessageFactory.suggestedActions(['5', '16', '19', '20', '21'], floorMessage);
             await context.sendActivity(firstSubReply);
         } else {
-            var reportReply = MessageFactory.suggestedActions(['DF5', 'DF16', 'DF19', 'DF20', 'DF21', changeMySubscription], reportMessage);
+            var reportReply = MessageFactory.suggestedActions(['DF5', 'DF16', 'DF19', 'DF20', 'DF21', changeFloor], reportMessage);
             await context.sendActivity(reportReply);
         }
     }
