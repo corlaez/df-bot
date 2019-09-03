@@ -1,5 +1,7 @@
 # df-bot
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/corlaez/df-bot.svg)](https://greenkeeper.io/)
+
 The bot&#39;s mission is to recieve reports of Daniel Fernando's location and notify subscribers.
 
 This bot has been created using [Bot Framework](https://dev.botframework.com).
