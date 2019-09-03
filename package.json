@@ -19,16 +19,16 @@
     },
     "dependencies": {
         "botbuilder": "~4.5.1",
-        "dotenv": "~8.0.0",
+        "dotenv": "~8.1.0",
         "moment": "^2.24.0",
         "replace": "~1.1.0",
-        "restify": "~8.3.3"
+        "restify": "~8.4.0"
     },
     "devDependencies": {
         "@types/dotenv": "6.1.1",
-        "@types/restify": "7.2.12",
+        "@types/restify": "8.4.0",
         "nodemon": "~1.19.1",
-        "tslint": "~5.18.0",
-        "typescript": "~3.5.3"
+        "tslint": "~5.19.0",
+        "typescript": "~3.6.2"
     }
 }
