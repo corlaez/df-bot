@@ -99,12 +99,14 @@ export class MyBot extends ActivityHandler {
                     await this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
                 } else {
                     subscribe(context, text, userId);
+                    console.log(subscriptions);
                     await context.sendActivity(floorUpdatedText);
                     await context.sendActivity(reportDF());// echo info about DF
                     await this.sendSuggestedActions(context, true);// Show report options
                 }
             }  else if (text === changeFloor) {// I want to change my floor
                 unsubscribe(userId);
+                console.log(subscriptions);
                 await this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
             } else {// I am subscribed and sent a text...
                 const words = getWords(text);
