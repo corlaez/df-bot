@@ -7,7 +7,7 @@ var moment = require("moment");
 moment.locale('es');
 
 // text
-const welcomeMessage = (name) => `Welcome ${ name }. ` +
+const welcomeMessage = (name) => `Bienvenid@! ` +
 `Soy un bot que te escribirá cuando me avisen que Daniel Fernando está en tu piso.`;
 const floorMessage = 'Primero dime ¿En qué piso estás?';
 const reportMessage = 'Sabes dónde está Daniel? Repórtalo.';
@@ -16,24 +16,23 @@ const floorUpdatedText = 'Listo. Te avisaré cuando sepa que Daniel llegó a tu 
 const changeFloor = "Cambiar mi piso";
 
 // User reports DF
+const belatrixFloors = ['5', '16', '19', '20', '21'];
 const toLowerCase = text => text.toLowerCase();
 const getWords = text => text.split(" ");
-const wordsToListen = ["sw5", "sw05", "sw16", "sw19", "sw20", "sw21", "df5", "df05", "df16", "df19", "df20", "df21"];
-const wordsToReplace = ["DF5", "DF5", "DF16", "DF19", "DF20", "DF21", "DF5", "DF5",  "DF16", "DF19", "DF20", "DF21"];
+const wordsToListen = [
+    "sw5", "sw05", "sw16", "sw19", "sw20", "sw21",
+    "df5", "df05", "df16", "df19", "df20", "df21",
+    "5", "16", "19", "20", "21"
+];
+const wordsToReplace = [
+    "5", "5", "16", "19", "20", "21",
+    "5", "5", "16", "19", "20", "21",
+    "5", "16", "19", "20", "21"
+];
 const isWordToListen = word => wordsToListen.includes(word.toLowerCase());
 const getWordsToListen = words => words.map(toLowerCase).filter(isWordToListen)
 const isLength1 = words => getWordsToListen(words).length === 1;
 const getWordToReplace = word => wordsToReplace[wordsToListen.indexOf(word.toLowerCase())];
-const wordsReducer = (arr, word) => { 
-    if (isWordToListen(word)) {// Use replaced token, to get rid of SWs
-        const wordToReplace = getWordToReplace(word)
-        arr.push(wordToReplace);
-    } else {// Use same word
-        arr.push(word);
-    }
-    return arr;
-};
-const processWords = words => words.reduce(wordsReducer, []).join(" ");
 
 // User is informed about DF whereabouts
 let currentToken = null;
@@ -41,11 +40,11 @@ let fullText = null;
 let currentDate = null;
 const reportDF = () => {
     if (currentDate == null) {
-        return "DF aún no ha sido reportado.";
+        return "Lo siento, aún no sé nada de Daniel.";
     }
     const now = moment();
     const diff = moment.duration(now.diff(currentDate)).humanize();
-    const mainReport = currentToken + " ha sido reportado hace " + diff + '.';
+    const mainReport = `Daniel ha sido viso hace ${diff} en el piso ${currentToken}.`;
     const isFullTextVisible =  fullText !== currentToken;
     const fullTextReport =  ' Mensaje completo: ' + fullText;
     return isFullTextVisible ? mainReport + fullTextReport : mainReport;
@@ -58,9 +57,11 @@ const subscriptions = {
     DF21: [],
 }
 const isSubscribedUser = id => Object.values(subscriptions).some(list => list.includes(id));
+const logSubs = () => console.log(JSON.stringify(subscriptions));
 const subscribe = (context, text, userId) => {
     subscriptions["DF"+text].push(userId);
     references[userId] = TurnContext.getConversationReference(context.activity);
+    logSubs();
 }
 const unsubscribe = id => {
     references[id] = null
@@ -80,6 +81,7 @@ const unsubscribe = id => {
     if (index > -1) {
         subscriptions.DF21 = [...subscriptions.DF21.slice(0, index), ...subscriptions.DF21.slice(index + 1)]
     }
+    logSubs();
 }
 
 // proactive messaging
@@ -94,19 +96,17 @@ export class MyBot extends ActivityHandler {
             const userId = context.activity.from.id;
             const isSubscribed = isSubscribedUser(userId);
             if(!isSubscribed) {// Please subscribe
-                const validAnswer = ["5", "16", "19", "20", "21"].includes(text);
+                const validAnswer = belatrixFloors.includes(text);
                 if(!validAnswer) {
                     await this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
                 } else {
                     subscribe(context, text, userId);
-                    console.log(subscriptions);
                     await context.sendActivity(floorUpdatedText);
                     await context.sendActivity(reportDF());// echo info about DF
                     await this.sendSuggestedActions(context, true);// Show report options
                 }
             }  else if (text === changeFloor) {// I want to change my floor
                 unsubscribe(userId);
-                console.log(subscriptions);
                 await this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
             } else {// I am subscribed and sent a text...
                 const words = getWords(text);
@@ -115,16 +115,15 @@ export class MyBot extends ActivityHandler {
                     const matchedWord = wordsToListen[0]
                     currentToken = getWordToReplace(matchedWord);
                     currentDate = moment();
-                    const newText = processWords(words);
-                    fullText = newText;
+                    fullText = text;
                     await context.sendActivity(thanksMessage);// echo parsed response to reporting user
                     // TODO: inform subscribers
-                    const subscribedRefs = subscriptions[currentToken]
+                    const subscribedRefs = subscriptions["DF" + currentToken]
                         .filter(id => id !== userId)
                         .map(id => references[id]);
                     for (const ref of subscribedRefs) {
                         await context.adapter.continueConversation(ref, async innerContext => {
-                            await innerContext.sendActivity(newText);// echo message to subscribers
+                            await innerContext.sendActivity(text);// echo message to subscribers
                         });
                     }
                 } else {// I sent some not handled text
@@ -158,10 +157,10 @@ export class MyBot extends ActivityHandler {
 
     async sendSuggestedActions(context, isSubscribed) {
         if(!isSubscribed) {
-            var firstSubReply = MessageFactory.suggestedActions(['5', '16', '19', '20', '21'], floorMessage);
+            var firstSubReply = MessageFactory.suggestedActions(belatrixFloors, floorMessage);
             await context.sendActivity(firstSubReply);
         } else {
-            var reportReply = MessageFactory.suggestedActions(['DF5', 'DF16', 'DF19', 'DF20', 'DF21', changeFloor], reportMessage);
+            var reportReply = MessageFactory.suggestedActions([...belatrixFloors, changeFloor], reportMessage);
             await context.sendActivity(reportReply);
         }
     }
