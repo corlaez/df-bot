@@ -1,13 +1,10 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
-
 import { ActivityHandler, MessageFactory, TurnContext } from 'botbuilder';
 
 var moment = require("moment");
 moment.locale('es');
 
 // text
-const welcomeMessage = (name) => `Bienvenid@! ` +
+const welcomeMessage = () => `Bienvenid@! ` +
 `Soy un bot que te escribirá cuando me avisen que Daniel Fernando está en tu piso.`;
 const floorMessage = 'Primero dime ¿En qué piso estás?';
 const reportMessage = 'Sabes dónde está Daniel? Repórtalo.';
@@ -20,21 +17,21 @@ const belatrixFloors = ['5', '16', '19', '20', '21'];
 const toLowerCase = text => text.toLowerCase();
 const getWords = text => text.split(" ");
 const wordsToListen = [
+    "5", "16", "19", "20", "21",
     "sw5", "sw05", "sw16", "sw19", "sw20", "sw21",
     "df5", "df05", "df16", "df19", "df20", "df21",
-    "5", "16", "19", "20", "21"
 ];
 const wordsToReplace = [
+    "5", "16", "19", "20", "21",
     "5", "5", "16", "19", "20", "21",
     "5", "5", "16", "19", "20", "21",
-    "5", "16", "19", "20", "21"
 ];
 const isWordToListen = word => wordsToListen.includes(word.toLowerCase());
 const getWordsToListen = words => words.map(toLowerCase).filter(isWordToListen)
 const isLength1 = words => getWordsToListen(words).length === 1;
 const getWordToReplace = word => wordsToReplace[wordsToListen.indexOf(word.toLowerCase())];
 
-// User is informed about DF whereabouts
+// Inform user about Daniel's last know location
 let currentToken = null;
 let fullText = null;
 let currentDate = null;
@@ -49,6 +46,7 @@ const reportDF = () => {
     const fullTextReport =  ' Mensaje completo: ' + fullText;
     return isFullTextVisible ? mainReport + fullTextReport : mainReport;
 }
+// Proactive messaging
 const subscriptions = {
     DF5: [],
     DF16: [],
@@ -147,9 +145,10 @@ export class MyBot extends ActivityHandler {
         for (const idx in context.activity.membersAdded) {
             const member = context.activity.membersAdded[idx];
             const userId = member.id
-            if (userId !== context.activity.recipient.id) {
+            const userIsNotTheBot = userId !== context.activity.recipient.id
+            if (userIsNotTheBot) {
                 const isSubscribed = isSubscribedUser(userId)
-                await context.sendActivity(welcomeMessage(member.name));
+                await context.sendActivity(welcomeMessage());
                 await this.sendSuggestedActions(context, isSubscribed);
             }
         }
