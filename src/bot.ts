@@ -54,36 +54,32 @@ const subscriptions = {
     DF20: [],
     DF21: [],
 }
-const isSubscribedUser = id => Object.values(subscriptions).some(list => list.includes(id));
-const logSubs = () => console.log(JSON.stringify(subscriptions));
-const subscribe = (context, text, userId) => {
-    subscriptions["DF"+text].push(userId);
-    references[userId] = TurnContext.getConversationReference(context.activity);
+const subsKeys = Object.keys(subscriptions);
+const isSubscribedUser = id => Object.values(subscriptions)
+    .some(list => list.map(sub => sub.user.id).includes(id));
+const logSubs = () => {
+    const lengths = subsKeys.reduce((acc, key) => { 
+        acc[key] = subscriptions[key].length;
+        return acc;
+    }, {});
+    console.log(JSON.stringify(subscriptions));
+    console.log(JSON.stringify(lengths));
+}
+const subscribe = (context, text) => {
+    const conversationRef = TurnContext.getConversationReference(context.activity);
+    subscriptions["DF"+text] = [ ...subscriptions["DF"+text], conversationRef]
     logSubs();
 }
 const unsubscribe = id => {
-    references[id] = null
-    let index = subscriptions.DF5.indexOf(id);
-    if (index > -1) {
-        subscriptions.DF5 = [...subscriptions.DF5.slice(0, index), ...subscriptions.DF5.slice(index + 1)]
-    }
-    index = subscriptions.DF16.indexOf(id);
-    if (index > -1) {
-        subscriptions.DF16 = [...subscriptions.DF16.slice(0, index), ...subscriptions.DF16.slice(index + 1)]
-    }
-    index = subscriptions.DF19.indexOf(id);
-    if (index > -1) {
-        subscriptions.DF19 = [...subscriptions.DF19.slice(0, index), ...subscriptions.DF19.slice(index + 1)]
-    }
-    index = subscriptions.DF21.indexOf(id);
-    if (index > -1) {
-        subscriptions.DF21 = [...subscriptions.DF21.slice(0, index), ...subscriptions.DF21.slice(index + 1)]
-    }
+    subsKeys.forEach((key) => {
+        const subArray = subscriptions[key]
+        let index = subArray.indexOf(id);
+        if (index > -1) {
+            subscriptions[key] = [...subArray.slice(0, index), ...subArray.slice(index + 1)];
+        }
+    });
     logSubs();
 }
-
-// proactive messaging
-const references = {};
 
 export class MyBot extends ActivityHandler {
     constructor() {
@@ -98,7 +94,7 @@ export class MyBot extends ActivityHandler {
                 if(!validAnswer) {
                     await this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
                 } else {
-                    subscribe(context, text, userId);
+                    subscribe(context, text);
                     await context.sendActivity(floorUpdatedText);
                     await context.sendActivity(reportDF());// echo info about DF
                     await this.sendSuggestedActions(context, true);// Show report options
@@ -117,8 +113,7 @@ export class MyBot extends ActivityHandler {
                     await context.sendActivity(thanksMessage);// echo parsed response to reporting user
                     // TODO: inform subscribers
                     const subscribedRefs = subscriptions["DF" + currentToken]
-                        .filter(id => id !== userId)
-                        .map(id => references[id]);
+                        .filter(ref => ref.user.id !== userId)
                     for (const ref of subscribedRefs) {
                         await context.adapter.continueConversation(ref, async innerContext => {
                             await innerContext.sendActivity(text);// echo message to subscribers
