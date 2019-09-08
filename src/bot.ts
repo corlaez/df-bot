@@ -44,7 +44,7 @@ const reportDF = () => {
     }
     const now = moment();
     const diff = moment.duration(now.diff(currentDate)).humanize();
-    const mainReport = `Daniel ha sido viso hace ${diff} en el piso ${currentToken}.`;
+    const mainReport = `Daniel ha sido visto hace ${diff} en el piso ${currentToken}.`;
     const isFullTextVisible =  fullText !== currentToken;
     const fullTextReport =  ' Mensaje completo: ' + fullText;
     return isFullTextVisible ? mainReport + fullTextReport : mainReport;
