@@ -1,8 +1,11 @@
 import { ActivityHandler, MessageFactory } from 'botbuilder';
-import { subscribe, unsubscribe, isSubscribedUser, getConversationRefs } from './subscriptions';
-import { getLocation, setLocation } from './location';
+import { TurnContext } from 'botbuilder';
+import subscriptions from './subscriptions';
+import location from './location';
 
-var moment = require("moment");
+const { subscribe, unsubscribe, isSubscribedUser, getConversationRefs } = subscriptions;
+const { getLocation, setLocation } = location;
+const moment = require("moment");
 moment.locale('es');
 
 // text
@@ -59,7 +62,8 @@ export class MyBot extends ActivityHandler {
                 if(!validAnswer) {
                     await this.sendSuggestedActions(context, false);// Show subscription options (stays in same state)
                 } else {
-                    subscribe(context, text);
+                    const conversationRef = TurnContext.getConversationReference(context.activity)
+                    subscribe(conversationRef, text);
                     await context.sendActivity(floorUpdatedText);
                     await context.sendActivity(reportLocation());// echo info about DF
                     await this.sendSuggestedActions(context, true);// Show report options

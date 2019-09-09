@@ -1,14 +1,7 @@
-// Inform user about Daniel's last know location
-let currentToken = null;
-let fullText = null;
-let currentDateMs = null;
+import * as locationMemory from './locationMemory';
+import * as locationMongo from './locationMongo';
 
-export const setLocation = (floor, text, ms) => {
-    currentToken = floor;
-    fullText = text;
-    currentDateMs = ms;
-}
+const hasMongoCredentials = false;
 
-export const getLocation = () => {
-    return { currentToken, fullText, currentDateMs };
-}
+export default hasMongoCredentials ? 
+    locationMongo : locationMemory;
