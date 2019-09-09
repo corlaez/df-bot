@@ -1,6 +1,9 @@
 import { ActivityHandler, MessageFactory } from 'botbuilder';
 import { subscribe, unsubscribe, isSubscribedUser, getConversationRefs } from './subscriptions';
-import { reportLocation, setLocation } from './location';
+import { getLocation, setLocation } from './location';
+
+var moment = require("moment");
+moment.locale('es');
 
 // text
 const welcomeMessage = () => `Bienvenid@! ` +
@@ -10,6 +13,19 @@ const reportMessage = 'Sabes dónde está Daniel? Repórtalo.';
 const thanksMessage = 'Gracias por reportar la ubicación de Daniel.';
 const floorUpdatedText = 'Listo. Te avisaré cuando sepa que Daniel llegó a tu piso.'
 const changeFloor = "Cambiar mi piso";
+const reportLocation = () => {
+    const { currentToken, fullText, currentDateMs } = getLocation();
+    if (currentDateMs == null) {
+        return "Lo siento, aún no sé nada de Daniel.";
+    }
+    const now = moment();
+    const currentDate = moment(currentDateMs);
+    const diff = moment.duration(now.diff(currentDate)).humanize();
+    const mainReport = `Daniel ha sido visto hace ${diff} en el piso ${currentToken}.`;
+    const isFullTextVisible =  fullText !== currentToken;
+    const fullTextReport =  ' Mensaje completo: ' + fullText;
+    return isFullTextVisible ? mainReport + fullTextReport : mainReport;
+}
 
 // User reports DF
 const belatrixFloors = ['5', '16', '19', '20', '21'];
@@ -57,7 +73,7 @@ export class MyBot extends ActivityHandler {
                 if (isLength1(wordsToListen)) {// The text is actually valid
                     const matchedWord = wordsToListen[0];
                     const floor = getWordToReplace(matchedWord);
-                    setLocation(floor, text);
+                    setLocation(floor, text, moment().valueOf());
                     await context.sendActivity(thanksMessage);// echo parsed response to reporting user
                     // TODO: inform subscribers
                     const subscribedRefs = getConversationRefs(floor, userId)
