@@ -1,12 +1,11 @@
-import { ActivityHandler, MessageFactory, TurnContext } from 'botbuilder';
-
-var moment = require("moment");
-moment.locale('es');
+import { ActivityHandler, MessageFactory } from 'botbuilder';
+import { subscribe, unsubscribe, isSubscribedUser, getConversationRefs } from './subscriptions';
+import { reportLocation, setLocation } from './location';
 
 // text
 const welcomeMessage = () => `Bienvenid@! ` +
 `Soy un bot que te escribirá cuando me avisen que Daniel Fernando está en tu piso.`;
-const floorMessage = 'Primero dime ¿En qué piso estás?';
+const floorMessage = 'Dime ¿En qué piso estás?';
 const reportMessage = 'Sabes dónde está Daniel? Repórtalo.';
 const thanksMessage = 'Gracias por reportar la ubicación de Daniel.';
 const floorUpdatedText = 'Listo. Te avisaré cuando sepa que Daniel llegó a tu piso.'
@@ -31,56 +30,6 @@ const getWordsToListen = words => words.map(toLowerCase).filter(isWordToListen)
 const isLength1 = words => getWordsToListen(words).length === 1;
 const getWordToReplace = word => wordsToReplace[wordsToListen.indexOf(word.toLowerCase())];
 
-// Inform user about Daniel's last know location
-let currentToken = null;
-let fullText = null;
-let currentDate = null;
-const reportDF = () => {
-    if (currentDate == null) {
-        return "Lo siento, aún no sé nada de Daniel.";
-    }
-    const now = moment();
-    const diff = moment.duration(now.diff(currentDate)).humanize();
-    const mainReport = `Daniel ha sido visto hace ${diff} en el piso ${currentToken}.`;
-    const isFullTextVisible =  fullText !== currentToken;
-    const fullTextReport =  ' Mensaje completo: ' + fullText;
-    return isFullTextVisible ? mainReport + fullTextReport : mainReport;
-}
-// Proactive messaging
-const subscriptions = {
-    DF5: [],
-    DF16: [],
-    DF19: [],
-    DF20: [],
-    DF21: [],
-}
-const subsKeys = Object.keys(subscriptions);
-const isSubscribedUser = id => Object.values(subscriptions)
-    .some(list => list.map(sub => sub.user.id).includes(id));
-const logSubs = () => {
-    const lengths = subsKeys.reduce((acc, key) => { 
-        acc[key] = subscriptions[key].length;
-        return acc;
-    }, {});
-    console.log(JSON.stringify(subscriptions));
-    console.log(JSON.stringify(lengths));
-}
-const subscribe = (context, text) => {
-    const conversationRef = TurnContext.getConversationReference(context.activity);
-    subscriptions["DF"+text] = [ ...subscriptions["DF"+text], conversationRef]
-    logSubs();
-}
-const unsubscribe = id => {
-    subsKeys.forEach((key) => {
-        const subArray = subscriptions[key]
-        let index = subArray.indexOf(id);
-        if (index > -1) {
-            subscriptions[key] = [...subArray.slice(0, index), ...subArray.slice(index + 1)];
-        }
-    });
-    logSubs();
-}
-
 export class MyBot extends ActivityHandler {
     constructor() {
         super();
@@ -96,7 +45,7 @@ export class MyBot extends ActivityHandler {
                 } else {
                     subscribe(context, text);
                     await context.sendActivity(floorUpdatedText);
-                    await context.sendActivity(reportDF());// echo info about DF
+                    await context.sendActivity(reportLocation());// echo info about DF
                     await this.sendSuggestedActions(context, true);// Show report options
                 }
             }  else if (text === changeFloor) {// I want to change my floor
@@ -106,21 +55,19 @@ export class MyBot extends ActivityHandler {
                 const words = getWords(text);
                 const wordsToListen = getWordsToListen(words);
                 if (isLength1(wordsToListen)) {// The text is actually valid
-                    const matchedWord = wordsToListen[0]
-                    currentToken = getWordToReplace(matchedWord);
-                    currentDate = moment();
-                    fullText = text;
+                    const matchedWord = wordsToListen[0];
+                    const floor = getWordToReplace(matchedWord);
+                    setLocation(floor, text);
                     await context.sendActivity(thanksMessage);// echo parsed response to reporting user
                     // TODO: inform subscribers
-                    const subscribedRefs = subscriptions["DF" + currentToken]
-                        .filter(ref => ref.user.id !== userId)
+                    const subscribedRefs = getConversationRefs(floor, userId)
                     for (const ref of subscribedRefs) {
                         await context.adapter.continueConversation(ref, async innerContext => {
                             await innerContext.sendActivity(text);// echo message to subscribers
                         });
                     }
                 } else {// I sent some not handled text
-                    await context.sendActivity(reportDF());// echo info about DF
+                    await context.sendActivity(reportLocation());// echo info about DF
                     await this.sendSuggestedActions(context, true);// Show report options
                 }
             }
