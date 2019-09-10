@@ -1,14 +1,15 @@
-// Inform user about Daniel's last know location
+import { Location } from './types';
+
 let currentToken = null;
 let fullText = null;
 let currentDateMs = null;
 
-export const setLocation = (floor, text, ms) => {
-    currentToken = floor;
-    fullText = text;
-    currentDateMs = ms;
+export const setLocation = (location: Location) => {
+    currentToken = location.currentToken;
+    fullText = location.fullText;
+    currentDateMs = location.currentDateMs;
 }
 
-export const getLocation = () => {
+export const getLocation = (): Location => {
     return { currentToken, fullText, currentDateMs };
 }

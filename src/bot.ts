@@ -17,7 +17,8 @@ const thanksMessage = 'Gracias por reportar la ubicación de Daniel.';
 const floorUpdatedText = 'Listo. Te avisaré cuando sepa que Daniel llegó a tu piso.'
 const changeFloor = "Cambiar mi piso";
 const reportLocation = () => {
-    const { currentToken, fullText, currentDateMs } = getLocation();
+    const lastLocation = getLocation();
+    const { currentToken, fullText, currentDateMs } = lastLocation;
     if (currentDateMs == null) {
         return "Lo siento, aún no sé nada de Daniel.";
     }
@@ -77,7 +78,11 @@ export class MyBot extends ActivityHandler {
                 if (isLength1(wordsToListen)) {// The text is actually valid
                     const matchedWord = wordsToListen[0];
                     const floor = getWordToReplace(matchedWord);
-                    setLocation(floor, text, moment().valueOf());
+                    const lastLocation = getLocation();
+                    const newLocation = {
+                        currentToken: floor, fullText: text, currentDateMs: moment().valueOf()
+                    }
+                    setLocation(newLocation);
                     await context.sendActivity(thanksMessage);// echo parsed response to reporting user
                     // TODO: inform subscribers
                     const subscribedRefs = getConversationRefs(floor, userId)
