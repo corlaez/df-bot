@@ -84,12 +84,14 @@ export class MyBot extends ActivityHandler {
                     }
                     setLocation(newLocation);
                     await context.sendActivity(thanksMessage);// echo parsed response to reporting user
-                    // TODO: inform subscribers
-                    const subscribedRefs = getConversationRefs(floor, userId)
-                    for (const ref of subscribedRefs) {
-                        await context.adapter.continueConversation(ref, async innerContext => {
-                            await innerContext.sendActivity(text);// echo message to subscribers
-                        });
+                    if (lastLocation.currentToken !== floor) {
+                        // TODO: inform subscribers
+                        const subscribedRefs = getConversationRefs(floor, userId)
+                        for (const ref of subscribedRefs) {
+                            await context.adapter.continueConversation(ref, async innerContext => {
+                                await innerContext.sendActivity(text);// echo message to subscribers
+                            });
+                        }
                     }
                 } else {// I sent some not handled text
                     await context.sendActivity(reportLocation());// echo info about DF
