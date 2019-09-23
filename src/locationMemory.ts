@@ -10,6 +10,6 @@ export const setLocation = (location: Location) => {
     currentDateMs = location.currentDateMs;
 }
 
-export const getLocation = (): Location => {
+export const getLocation = async(): Promise<Location> => {
     return { currentToken, fullText, currentDateMs };
 }

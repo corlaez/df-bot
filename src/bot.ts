@@ -16,8 +16,8 @@ const reportMessage = 'Sabes dónde está Daniel? Repórtalo.';
 const thanksMessage = 'Gracias por reportar la ubicación de Daniel.';
 const floorUpdatedText = 'Listo. Te avisaré cuando sepa que Daniel llegó a tu piso.'
 const changeFloor = "Cambiar mi piso";
-const reportLocation = () => {
-    const lastLocation = getLocation();
+const reportLocation = async () => {
+    const lastLocation = await getLocation();
     const { currentToken, fullText, currentDateMs } = lastLocation;
     if (currentDateMs == null) {
         return "Lo siento, aún no sé nada de Daniel.";
@@ -66,7 +66,7 @@ export class MyBot extends ActivityHandler {
                     const conversationRef = TurnContext.getConversationReference(context.activity)
                     subscribe(conversationRef, text);
                     await context.sendActivity(floorUpdatedText);
-                    await context.sendActivity(reportLocation());// echo info about DF
+                    await context.sendActivity(await reportLocation());// echo info about DF
                     await this.sendSuggestedActions(context, true);// Show report options
                 }
             }  else if (text === changeFloor) {// I want to change my floor
@@ -78,7 +78,7 @@ export class MyBot extends ActivityHandler {
                 if (isLength1(wordsToListen)) {// The text is actually valid
                     const matchedWord = wordsToListen[0];
                     const floor = getWordToReplace(matchedWord);
-                    const lastLocation = getLocation();
+                    const lastLocation = await getLocation();
                     const newLocation = {
                         currentToken: floor, fullText: text, currentDateMs: moment().valueOf()
                     }
@@ -94,7 +94,7 @@ export class MyBot extends ActivityHandler {
                         }
                     }
                 } else {// I sent some not handled text
-                    await context.sendActivity(reportLocation());// echo info about DF
+                    await context.sendActivity(await reportLocation());// echo info about DF
                     await this.sendSuggestedActions(context, true);// Show report options
                 }
             }
